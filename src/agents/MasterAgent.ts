@@ -56,9 +56,13 @@ export class MasterAgent {
       
       const chat = this.model.startChat({
         history: this.convertToGeminiHistory(context?.conversationHistory || []),
+        generationConfig: {
+          temperature: 0.7,
+        },
       });
 
-      const result = await chat.sendMessage(userPrompt);
+      const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+      const result = await chat.sendMessage(fullPrompt);
       const response = await result.response;
       const text = response.text();
 
@@ -120,10 +124,10 @@ When you identify a task that matches a child agent's capabilities, indicate in 
     return prompt;
   }
 
-  private convertToGeminiHistory(messages: AgentMessage[]): Array<{role: string, parts: string}> {
+  private convertToGeminiHistory(messages: AgentMessage[]): Array<{role: string, parts: Array<{text: string}>}> {
     return messages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: msg.content
+      parts: [{text: msg.content}]
     }));
   }
 

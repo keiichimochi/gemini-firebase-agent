@@ -1,19 +1,25 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { MasterAgent } from './agents/MasterAgent';
 import { TaskRequest, AgentResponse } from './types/agent.types';
+import * as dotenv from 'dotenv';
+
+// Load environment variables in development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: '.env' });
+}
 
 admin.initializeApp();
 
 const GEMINI_API_KEY = functions.config().gemini?.api_key || process.env.GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
-  throw new Error('Gemini API key is not configured');
+  console.warn('Gemini API key is not configured. Set GEMINI_API_KEY in .env file or Firebase config.');
 }
 
-const masterAgent = new MasterAgent(GEMINI_API_KEY);
+const masterAgent = GEMINI_API_KEY ? new MasterAgent(GEMINI_API_KEY) : null;
 
-export const processAgentRequest = functions.https.onRequest(async (req, res) => {
+export const processAgentRequest = functions.region('us-central1').https.onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -29,6 +35,13 @@ export const processAgentRequest = functions.https.onRequest(async (req, res) =>
   }
 
   try {
+    if (!masterAgent) {
+      res.status(503).json({ 
+        error: 'Service unavailable. Gemini API key not configured.' 
+      });
+      return;
+    }
+
     const taskRequest: TaskRequest = req.body;
     
     if (!taskRequest.taskType || !taskRequest.parameters) {
@@ -65,7 +78,7 @@ export const getAgentInfo = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  const childAgents = masterAgent.getChildAgents();
+  const childAgents = masterAgent ? masterAgent.getChildAgents() : [];
   
   res.status(200).json({
     name: 'MasterAgent',
@@ -112,6 +125,13 @@ export const chat = functions.https.onRequest(async (req, res) => {
         conversationHistory: conversationHistory || []
       }
     };
+
+    if (!masterAgent) {
+      res.status(503).json({ 
+        error: 'Service unavailable. Gemini API key not configured.' 
+      });
+      return;
+    }
 
     const response = await masterAgent.processRequest(taskRequest);
     res.status(200).json(response);
