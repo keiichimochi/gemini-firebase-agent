@@ -1,0 +1,116 @@
+project_name: "Firebase Gemini Agent"
+description: "Firebase Functions v2を使用したGemini AIエージェントシステム"
+
+current_phase: "Phase 1 完了 → Phase 2 準備中"
+progress_percentage: 25
+
+development_status:
+  phase_1_foundation:
+    status: "completed"
+    completion_date: "2025-05-26"
+    items:
+      - firebase_functions_v2_migration: "completed"
+      - typescript_setup: "completed"
+      - gemini_api_integration: "completed"
+      - master_agent_implementation: "completed"
+      - secrets_management: "completed"
+      - production_deployment: "completed"
+      - api_endpoints: "completed"
+      - documentation: "completed"
+
+  phase_2_frontend:
+    status: "planned"
+    items:
+      - web_application: "todo"
+      - chat_ui: "todo"
+      - agent_selection: "todo"
+      - real_time_features: "todo"
+
+current_task: "ローカル開発環境整備完了 - ポート競合回避システム実装"
+next_task: "403 Forbiddenエラーの解決とフロントエンドWebアプリケーションの設計・開発"
+
+milestones:
+  - name: "Firebase Functions v2 デプロイ成功"
+    date: "2025-05-26"
+    description: "v1からv2への完全移行とBlazeプランでの本番デプロイ"
+  - name: "基本エージェント機能実装"
+    date: "2025-05-26"
+    description: "MasterAgent + 3つの子エージェント設計完了"
+  - name: "ローカル開発環境整備完了"
+    date: "2025-05-26"
+    description: "ポート競合回避システム・自動テストスクリプト・開発ガイド作成"
+
+deployed_endpoints:
+  - name: "processagentrequest"
+    url: "https://us-central1-gemini-firebase-agent.cloudfunctions.net/processagentrequest"
+    status: "deployed"
+    method: "POST"
+  - name: "getagentinfo"
+    url: "https://us-central1-gemini-firebase-agent.cloudfunctions.net/getagentinfo"
+    status: "deployed_verified"
+    method: "GET"
+  - name: "chat"
+    url: "https://chat-n2dzximauq-uc.a.run.app"
+    status: "deployed_403_error"
+    method: "POST"
+
+technical_stack:
+  backend:
+    - "Firebase Functions v2"
+    - "Node.js 20"
+    - "TypeScript"
+  ai_services:
+    - "Gemini 2.0 Flash API"
+  infrastructure:
+    - "Google Cloud Platform"
+    - "Firebase Blaze Plan"
+    - "Firebase Secrets Manager"
+  development_tools:
+    - "Firebase CLI"
+    - "npm/TypeScript"
+
+code_modules:
+  - "src/index.ts - Main Functions"
+  - "src/agents/MasterAgent.ts - AI Agent Logic"
+  - "src/types/agent.types.ts - Type Definitions"
+  - "start-test-server.sh - Local Development Server"
+  - "test-endpoints.sh - Automated Testing"
+  - "local-ports.config - Port Configuration"
+  - "LOCAL_DEVELOPMENT.md - Development Guide"
+
+issues_resolved:
+  - name: "Container Healthcheck failed"
+    solution: "Firebase Functions v1→v2完全移行"
+    date: "2025-05-26"
+  - name: "Secret environment variable overlaps"
+    solution: ".envファイルからGEMINI_API_KEY削除"
+    date: "2025-05-26"
+  - name: "npm predeploy stdin error"
+    solution: "firebase.jsonからpredeploy削除、手動ビルド"
+    date: "2025-05-26"
+  - name: "ローカル開発時のポート競合"
+    solution: "自動ポート管理スクリプト・設定ファイルシステム実装"
+    date: "2025-05-26"
+
+current_issues:
+  - name: "chat function 403 Forbidden"
+    priority: "medium"
+    description: "Firebase Console IAM設定が必要"
+
+documentation:
+  - name: "devrule.md"
+    description: "Firebase Functions v1→v2移行規範 + ローカル開発環境"
+    status: "updated"
+  - name: "TODO.md"
+    description: "プロジェクト進捗管理"
+    status: "completed"
+  - name: "LOCAL_DEVELOPMENT.md"
+    description: "ローカル開発環境セットアップガイド"
+    status: "completed"
+  - name: "README.md"
+    description: "プロジェクト概要"
+    status: "existing"
+
+last_updated: "2025-05-26T06:15:00Z"
+created_by: "Firebase Functions v1→v2移行プロジェクト"
+version: "1.1.0" 

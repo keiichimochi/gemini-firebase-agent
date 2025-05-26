@@ -1,4 +1,6 @@
-import * as functions from 'firebase-functions/v1';
+import { onRequest } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
+import * as logger from 'firebase-functions/logger';
 import * as admin from 'firebase-admin';
 import { MasterAgent } from './agents/MasterAgent';
 import { TaskRequest, AgentResponse } from './types/agent.types';
@@ -11,15 +13,28 @@ if (process.env.NODE_ENV !== 'production') {
 
 admin.initializeApp();
 
-const GEMINI_API_KEY = functions.config().gemini?.api_key || process.env.GEMINI_API_KEY;
+// Define the secret for Firebase Functions v2
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
-if (!GEMINI_API_KEY) {
-  console.warn('Gemini API key is not configured. Set GEMINI_API_KEY in .env file or Firebase config.');
+// Initialize masterAgent inside functions since secrets are only available at runtime
+let masterAgent: MasterAgent | null = null;
+
+function initializeMasterAgent(): MasterAgent | null {
+  if (masterAgent) return masterAgent;
+  
+  const apiKey = geminiApiKey.value();
+  if (!apiKey) {
+    logger.warn('Gemini API key is not configured.');
+    return null;
+  }
+  
+  masterAgent = new MasterAgent(apiKey);
+  return masterAgent;
 }
 
-const masterAgent = GEMINI_API_KEY ? new MasterAgent(GEMINI_API_KEY) : null;
-
-export const processAgentRequest = functions.region('us-central1').https.onRequest(async (req, res) => {
+export const processagentrequest = onRequest(
+  { secrets: [geminiApiKey] },
+  async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -35,7 +50,8 @@ export const processAgentRequest = functions.region('us-central1').https.onReque
   }
 
   try {
-    if (!masterAgent) {
+    const agent = initializeMasterAgent();
+    if (!agent) {
       res.status(503).json({ 
         error: 'Service unavailable. Gemini API key not configured.' 
       });
@@ -51,7 +67,7 @@ export const processAgentRequest = functions.region('us-central1').https.onReque
       return;
     }
 
-    const response: AgentResponse = await masterAgent.processRequest(taskRequest);
+    const response: AgentResponse = await agent.processRequest(taskRequest);
     
     res.status(response.success ? 200 : 500).json(response);
   } catch (error) {
@@ -63,7 +79,9 @@ export const processAgentRequest = functions.region('us-central1').https.onReque
   }
 });
 
-export const getAgentInfo = functions.https.onRequest(async (req, res) => {
+export const getagentinfo = onRequest(
+  { secrets: [geminiApiKey] },
+  async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -78,7 +96,8 @@ export const getAgentInfo = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  const childAgents = masterAgent ? masterAgent.getChildAgents() : [];
+  const agent = initializeMasterAgent();
+  const childAgents = agent ? agent.getChildAgents() : [];
   
   res.status(200).json({
     name: 'MasterAgent',
@@ -94,7 +113,9 @@ export const getAgentInfo = functions.https.onRequest(async (req, res) => {
   });
 });
 
-export const chat = functions.https.onRequest(async (req, res) => {
+export const chat = onRequest(
+  { secrets: [geminiApiKey] },
+  async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -126,14 +147,15 @@ export const chat = functions.https.onRequest(async (req, res) => {
       }
     };
 
-    if (!masterAgent) {
+    const agent = initializeMasterAgent();
+    if (!agent) {
       res.status(503).json({ 
         error: 'Service unavailable. Gemini API key not configured.' 
       });
       return;
     }
 
-    const response = await masterAgent.processRequest(taskRequest);
+    const response = await agent.processRequest(taskRequest);
     res.status(200).json(response);
   } catch (error) {
     console.error('Chat error:', error);
